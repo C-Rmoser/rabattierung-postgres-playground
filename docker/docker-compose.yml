@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:latest
+    container_name: rabattierung-playground
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=rabattierung
+    ports:
+      - '5438:5432'
+    volumes: 
+      - db:/var/lib/postgresql/rabattierung
+volumes:
+  db:
+    driver: local
