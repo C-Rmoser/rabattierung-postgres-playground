@@ -1,4 +1,3 @@
-drop materialized view if exists calc_vertrag;
 create materialized view calc_vertrag as
     SELECT VER_STATUSEV, OFK_KZ_GRUNDDECKUNG, VER_TARIFVARIANTE, VER_TARIF_VERSION,
     VER_HAUSTARIF,

@@ -1,5 +1,8 @@
 create schema if not exists public;
+-- Clean up here
+drop materialized view if exists public.calc_vertrag;
 drop table if exists public.vertrag;
+
 create table public.vertrag(
     id varchar(36),
     created_by varchar(255),
