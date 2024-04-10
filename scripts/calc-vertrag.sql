@@ -36,3 +36,43 @@ LEFT JOIN public.vertrag_historie AS vh ON vh.vertrag_id = v.id AND
 (vh.bestand_vom = v.BESTAND_VOM - INTERVAL '1 year')
 LEFT JOIN public.vertrag_historie AS vh2 ON vh2.vertrag_id = v.id AND 
 (vh2.bestand_vom = DATE_TRUNC('year', v.bestand_vom) - INTERVAL '1 day');
+
+
+
+
+
+
+
+
+CREATE MATERIALIZED VIEW calc_vertrag_new AS
+    SELECT v.ID, v.VER_KZ_AUSLANDSCHUTZ, v.GKF_KZ_UMS_RECHNEN, v.GKF_INHALTSVERS, v.GKF_INHALT_WERT_GRP, v.GKF_KZ_WERTMINDERUNG, v.OFK_GRP_ANBAU,
+    v.GKF_BEKLEIDUNGSCHUTZ, v.GKF_KZ_GAP, v.OFK_VERW_ZWECK, v.VER_SCHLVERTRAG, v.VER_TARIFVARIANTE, v.VER_BEITRWFEV, v.agentur_rabatt, v.regional_direktion_rabatt
+FROM public.vertrag AS v
+LEFT JOIN public.vertrag_historie AS vh ON vh.vertrag_id = v.id AND 
+(vh.bestand_vom = v.BESTAND_VOM - INTERVAL '1 year')
+LEFT JOIN public.vertrag_historie AS vh2 ON vh2.vertrag_id = v.id AND 
+(vh2.bestand_vom = DATE_TRUNC('year', v.bestand_vom) - INTERVAL '1 day')
+WHERE
+    ---- Datensätze mit Status stillgelegt
+    NOT (VER_STATUSEV = 10) AND
+    ---- Verträge mit Haustarif
+    NOT (VER_HAUSTARIF = 0) AND
+    ---- Alte Tarife mit Kompaktdeckung
+    NOT (OFK_KZ_GRUNDDECKUNG = true AND VER_TARIFVARIANTE::decimal < 98) AND
+    NOT (OFK_KZ_GRUNDDECKUNG = true AND (VER_TARIFVARIANTE::decimal = 98 OR VER_TARIFVARIANTE::decimal = 99) AND VER_TARIF_VERSION < 3) AND
+    ---- Datensätze ohne Anfassung im letzten Jahr
+    NOT (GKF_DAT_ANFOR_AE <= (v.BESTAND_VOM - INTERVAL '1 year') AND
+        GKF_DAT_ANFOR_ERSATZ <= (v.BESTAND_VOM - INTERVAL '1 year') AND
+        GKF_DAT_ANFOR_NEU <= (v.BESTAND_VOM - INTERVAL '1 year') AND
+        GKF_DAT_ANFOR_TVAR <= (v.BESTAND_VOM - INTERVAL '1 year') AND
+        GKF_DAT_ANF_NEU_VERT <= (v.BESTAND_VOM - INTERVAL '1 year')) AND
+    ---- Rabattänderungen ohne Agenturrabatt-Änderung 
+    ---- Rabattänderung ist die einzige Anfassung im letzten Jahr
+    NOT (GKF_DAT_ANFOR_AE > (v.BESTAND_VOM - INTERVAL '1 year') AND
+        GKF_DAT_ANFOR_ERSATZ <= (v.BESTAND_VOM - INTERVAL '1 year') AND
+        GKF_DAT_ANFOR_NEU <= (v.BESTAND_VOM - INTERVAL '1 year') AND
+        GKF_DAT_ANFOR_TVAR <= (v.BESTAND_VOM - INTERVAL '1 year') AND
+        GKF_DAT_ANF_NEU_VERT <= (v.BESTAND_VOM - INTERVAL '1 year') AND
+        -- ... und es gab weder eine Agenturrabattänderung im Vergleich zu vor 1 Jahr
+        -- noch eine Regionaldirektionsrabattänderung im laufenden Kaldenderjahr
+        (v.agentur_rabatt = vh.agentur_rabatt AND v.REGIONAL_DIREKTION_RABATT = vh2.regional_direktion_rabatt));

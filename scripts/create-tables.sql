@@ -1,6 +1,7 @@
 create schema if not exists public;
 -- Clean up here
 drop materialized view if exists public.calc_vertrag;
+drop materialized view if exists public.calc_vertrag_new;
 drop table if exists public.vertrag;
 drop table if exists public.vertrag_historie;
 
@@ -49,3 +50,6 @@ CREATE TABLE public.vertrag_historie (
     regional_direktion_rabatt INT,
     vertrag_id VARCHAR(36) NOT NULL
 );
+
+CREATE INDEX [IF NOT EXISTS] vertrag_id_index
+ON public.vertrag_historie(vertrag_id);
